@@ -1,18 +1,42 @@
-<?php 
-
-// Register Custom Post Type named Book and add book category slug
+/* START New post types */
+// Register Custom Post Type
 function register_custom_post_type_book() {
     $args = array(
         'label'  => 'Books',
         'public' => true,
         'publicly_queryable' => true,
-        'rewrite' => array('slug' => 'books/%book_category%'), // Modified rewrite rule
-        'supports' => array('title', 'editor', 'thumbnail'),
-        'has_archive' => true,
+        'rewrite' => array(
+            'slug' => 'books',
+            'with_front' => false,
+        ),
+        'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'author', 'comments', 'revisions', 'custom-fields'),
+        'has_archive' => 'books',
+        'show_in_rest' => true,
+        'menu_icon' => 'dashicons-book-alt',
+        'hierarchical' => false,
+        'show_ui' => true,
+        'show_in_menu' => true,
+        'menu_position' => 5,
+        'can_export' => true,
+        'exclude_from_search' => false,
+        'capability_type' => 'post',
     );
     register_post_type('book', $args);
 }
 add_action('init', 'register_custom_post_type_book');
+
+// Add Divi Builder support for the book post type
+function add_divi_support_to_book() {
+    add_post_type_support('book', 'et-builder-layouts');
+}
+add_action('init', 'add_divi_support_to_book', 11);
+
+// Enable Divi Builder for the book post type
+function enable_divi_builder_for_book($post_types) {
+    $post_types[] = 'book';
+    return $post_types;
+}
+add_filter('et_builder_post_types', 'enable_divi_builder_for_book');
 
 // Register Custom Taxonomy
 function register_custom_taxonomy_book_category() {
@@ -30,23 +54,31 @@ function register_custom_taxonomy_book_category() {
 }
 add_action('init', 'register_custom_taxonomy_book_category');
 
-// Add a function to replace the category placeholder in the permalink
+// Modify the book post type link
 function book_post_type_link($post_link, $post) {
     if ($post->post_type === 'book') {
         $terms = wp_get_object_terms($post->ID, 'book_category');
         if ($terms) {
-            return str_replace('%book_category%', $terms[0]->slug, $post_link);
+            $category_slug = $terms[0]->slug;
+            return home_url("books/{$category_slug}/{$post->post_name}/");
         }
     }
     return $post_link;
 }
 add_filter('post_type_link', 'book_post_type_link', 10, 2);
 
-// Modify the rewrite rule for books
+// Add custom rewrite rules for books
 function custom_rewrite_rules_book_category() {
     add_rewrite_rule(
         '^books/([^/]+)/([^/]+)/?$',
         'index.php?book=$matches[2]&book_category=$matches[1]',
+        'top'
+    );
+    
+    // Add a rule for the book archive
+    add_rewrite_rule(
+        '^books/?$',
+        'index.php?post_type=book',
         'top'
     );
 }
@@ -84,3 +116,5 @@ function modify_single_book_query($query) {
     }
 }
 add_action('pre_get_posts', 'modify_single_book_query');
+
+/* END New post types */
