@@ -1,3 +1,5 @@
+<?php
+
 /* START New post types */
 // Register Custom Post Type
 function register_custom_post_type_book() {
